@@ -6,6 +6,20 @@ function App() {
   const [user, setUser] = useState(null);
   const [showRegister, setShowRegister] = useState(false);
 
+  const prueba=()=>{
+    let db=window.indexedDB.open('database');
+    db.onsuccess=event=>{
+      let result=event.target.result;
+      let transaction=result.transaction('table', 'readwrite');
+      let obj=transaction.objectStore('table');
+      const resultado=obj.add({nombre:'masan'});
+      //const resultado=obj.get(1);
+      resultado.onsuccess=event2=>{
+        console.log(event2.target.result);
+      }
+    }
+  }
+
   if (!user) {
     return showRegister ? (
       <Register />
@@ -47,7 +61,7 @@ function App() {
 
       <button
         className="mt-8 bg-red-500 text-white py-2 px-4 rounded hover:bg-red-600 transition"
-        onClick={() => setUser(null)}
+        onClick={prueba()}
       >
         Cerrar sesión
       </button>

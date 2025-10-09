@@ -1,13 +1,28 @@
 <!doctype html>
-<html lang="en">
+<html lang="es">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+
+    <!-- Ícono principal de la PWA -->
+    <link rel="icon" href="/favicon.ico" sizes="64x64 32x32 24x24 16x16" type="image/x-icon" />
+
+    <!-- Manifest con configuración PWA -->
+    <link rel="manifest" href="/manifest.json" />
+
+    <!-- Colores de la PWA (para splash screen y barra del navegador) -->
+    <meta name="theme-color" content="#000000" />
+    <meta name="background-color" content="#ffffff" />
+
+    <!-- Viewport responsivo -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>front</title>
+
+    <title>Mi Primera PWA</title>
   </head>
+
   <body>
     <div id="root"></div>
+
+    <!-- Script principal -->
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>
