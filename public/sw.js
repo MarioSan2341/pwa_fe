@@ -48,17 +48,32 @@ self.addEventListener("activate", (event) => {
 //  FETCH - OFFLINE
 // =======================
 self.addEventListener("fetch", (event) => {
+  if (event.request.method !== "GET") return;
+
   event.respondWith(
     caches.match(event.request).then((cached) => {
       if (cached) return cached;
-      return fetch(event.request).catch(() => {
-        if (event.request.mode === "navigate") {
-          return caches.match(OFFLINE_URL);
-        }
-      });
+
+      return fetch(event.request)
+        .then((response) => {
+          // Clonar response y guardar en cache
+          const responseClone = response.clone();
+          caches.open("dynamic-cache-v1").then((cache) => {
+            cache.put(event.request, responseClone);
+          });
+          return response;
+        })
+        .catch(() => {
+          // fallback para páginas HTML
+          if (event.request.mode === "navigate") {
+            return caches.match(OFFLINE_URL);
+          }
+        });
     })
   );
 });
+
+
 
 // =======================
 //  PUSH NOTIFICATIONS
