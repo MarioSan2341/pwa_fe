@@ -18,14 +18,27 @@ export default function Login({ onLogin, onShowRegister }) {
       const data = await res.json();
 
       if (data.success) {
-        setError("");
-        onLogin(data.username);
-      } else {
+    setError("");
+
+    // Guardar sesión local (importantísimo para PWA)
+    localStorage.setItem("user", data.username);
+
+    onLogin(data.username);
+}
+ else {
         setError(data.message);
       }
     } catch {
-      setError("Error del servidor");
+    // Si no hay internet pero el usuario ya inició sesión antes
+    const savedUser = localStorage.getItem("user");
+
+    if (savedUser && savedUser === username) {
+        onLogin(savedUser);
+        return;
     }
+
+    setError("Sin conexión. No puedes iniciar sesión por primera vez.");
+}
   };
 
   return (
