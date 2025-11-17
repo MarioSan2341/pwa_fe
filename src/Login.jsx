@@ -9,7 +9,7 @@ export default function Login({ onLogin, onShowRegister }) {
     e.preventDefault();
 
     try {
-      const res = await fetch("http://pwa-be-3xz0.onrender.com/login", {
+      const res = await fetch("https://pwa-be-3xz0.onrender.com/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username, password }),

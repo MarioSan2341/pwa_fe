@@ -143,7 +143,7 @@ function App() {
   });
 
   // Enviar suscripción al backend
-  await fetch("http://pwa-be-3xz0.onrender.com/subscribe", {
+  await fetch("https://pwa-be-3xz0.onrender.com/subscribe", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(subscription),
@@ -176,7 +176,7 @@ function App() {
 // ========================
 async function sendTestNotification() {
   try {
-    const res = await fetch("http://pwa-be-3xz0.onrender.com/sendNotification", {
+    const res = await fetch("https://pwa-be-3xz0.onrender.com/sendNotification", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({

@@ -9,7 +9,7 @@ export default function Register() {
     e.preventDefault();
 
     try {
-      const res = await fetch("http://pwa-be-3xz0.onrender.com/register", {
+      const res = await fetch("https://pwa-be-3xz0.onrender.com/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username, password }),
