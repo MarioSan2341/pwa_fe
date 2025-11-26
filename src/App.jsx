@@ -56,6 +56,16 @@ function App() {
     return () => clearTimeout(t);
   }, []);
 
+ useEffect(() => {
+  if (user) {
+    loadCartFromDB();   // 🔥 RECARGA el carrito del nuevo usuario
+  } else {
+    setCartCount(0);    // 🔥 Cierra sesión → carrito vacío
+  }
+}, [user]);
+
+
+
   // Datos base de catálogos
   const catalogsData = [
     { id: 1, name: "Electrónica", description: "Teléfonos, computadoras y más" },
@@ -100,21 +110,24 @@ function App() {
 
   // cargar carrito desde IndexedDB al iniciar
   async function loadCartFromDB() {
-    try {
-      const db = await openDB();
-      const tx = db.transaction("cart", "readonly");
-      const store = tx.objectStore("cart");
-      const req = store.getAll();
-      req.onsuccess = () => {
-        const items = req.result || [];
-        setCartItems(items);
-        setCartCount(items.length);
-      };
-      req.onerror = (e) => console.error("Error loadCartFromDB:", e);
-    } catch (err) {
-      console.error("Error abrir DB carrito:", err);
-    }
+  try {
+    const db = await openDB();
+    const tx = db.transaction("cart", "readonly");
+    const store = tx.objectStore("cart");
+    const req = store.getAll();
+
+    req.onsuccess = () => {
+      const all = req.result || [];
+      const filtered = all.filter(i => i.username === user); // 🔥
+      setCartItems(filtered);
+      setCartCount(filtered.length); // 🔥
+    };
+
+  } catch (err) {
+    console.error("Error abrir DB carrito:", err);
   }
+}
+
   useEffect(() => { loadCartFromDB(); }, []);
 
   // notificación local
@@ -135,7 +148,12 @@ function App() {
       const db = await openDB();
       const tx = db.transaction("cart", "readwrite");
       const store = tx.objectStore("cart");
-      const item = { product, synced: navigator.onLine, date: new Date().toISOString() };
+      const item = { 
+  product, 
+  username: user,     
+  synced: navigator.onLine, 
+  date: new Date().toISOString() 
+};
       const addReq = store.add(item);
       addReq.onsuccess = (evt) => {
         // read id assigned by IDB
@@ -249,7 +267,13 @@ function App() {
 
   // Si viewCart true mostramos la pantalla Carrito
   if (viewCart) {
-    return <Carrito onBack={() => { setViewCart(false); loadCartFromDB(); }} onClear={() => { setCartItems([]); setCartCount(0); }} />;
+    return (
+  <Carrito
+    user={user}
+    onBack={() => { setViewCart(false); loadCartFromDB(); }}
+    onClear={() => { setCartItems([]); setCartCount(0); }}
+  />
+);
   }
 
   // Render principal

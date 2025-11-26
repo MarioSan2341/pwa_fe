@@ -8,7 +8,7 @@ function openDB() {
   });
 }
 
-export default function Carrito({ onBack, onClear }) {
+export default function Carrito({ user, onBack, onClear }) {   // 🔥 user agregado
   const [items, setItems] = useState([]);
 
   useEffect(() => { load(); }, []);
@@ -19,7 +19,13 @@ export default function Carrito({ onBack, onClear }) {
       const tx = db.transaction("cart", "readonly");
       const store = tx.objectStore("cart");
       const req = store.getAll();
-      req.onsuccess = () => setItems(req.result || []);
+
+      req.onsuccess = () => {
+        const all = req.result || [];
+        const filtered = all.filter(i => i.username === user); // 🔥 filtrar por usuario
+        setItems(filtered);
+      };
+
     } catch (e) {
       console.error("Error load carrito:", e);
     }
@@ -36,7 +42,10 @@ export default function Carrito({ onBack, onClear }) {
     const db = await openDB();
     const tx = db.transaction("cart", "readwrite");
     tx.objectStore("cart").clear();
-    tx.oncomplete = () => { setItems([]); if (onClear) onClear(); };
+    tx.oncomplete = () => { 
+      setItems([]); 
+      if (onClear) onClear(); 
+    };
   }
 
   return (
