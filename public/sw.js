@@ -48,32 +48,46 @@ self.addEventListener("activate", (event) => {
 //  FETCH - OFFLINE
 // =======================
 self.addEventListener("fetch", (event) => {
-  if (event.request.method !== "GET") return;
+  const req = event.request;
+
+  // ❌ EVITAR cachear cosas como chrome-extension://
+  if (req.url.startsWith("chrome-extension://")) {
+    return; // no intentar manejar esta petición
+  }
+
+  // Solo manejar GET
+  if (req.method !== "GET") return;
 
   event.respondWith(
-    caches.match(event.request).then((cached) => {
+    caches.match(req).then((cached) => {
       if (cached) return cached;
 
-      return fetch(event.request)
+      return fetch(req)
         .then((response) => {
-          // Clonar response y guardar en cache
+          // Evitar cachear respuestas inválidas
+          if (!response || response.status !== 200 || response.type !== "basic") {
+            return response;
+          }
+
           const responseClone = response.clone();
+
           caches.open("dynamic-cache-v1").then((cache) => {
-            cache.put(event.request, responseClone);
+            cache.put(req, responseClone).catch((err) => {
+              console.warn("⚠️ Error cache.put:", err);
+            });
           });
+
           return response;
         })
         .catch(() => {
-          // fallback para páginas HTML
-          if (event.request.mode === "navigate") {
+          // fallback para navegación
+          if (req.mode === "navigate") {
             return caches.match(OFFLINE_URL);
           }
         });
     })
   );
 });
-
-
 
 // =======================
 //  PUSH NOTIFICATIONS
@@ -86,14 +100,13 @@ self.addEventListener("push", (event) => {
   if (event.data) {
     try {
       data = event.data.json();
-    } catch (err) {
-      console.warn("⚠️ Push recibido no es JSON, usando fallback", err);
+    } catch {
       data.body = event.data.text();
     }
   }
 
   const options = {
-    body: data.body || "Tienes una nueva notificación",
+    body: data.body,
     icon: "/icons/icon-192x192.png",
     badge: "/icons/icon-72x72.png",
     vibrate: [200, 100, 200],
@@ -103,7 +116,7 @@ self.addEventListener("push", (event) => {
   };
 
   event.waitUntil(
-    self.registration.showNotification(data.title || "Notificación", options)
+    self.registration.showNotification(data.title, options)
   );
 });
 
