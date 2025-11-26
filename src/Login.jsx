@@ -32,7 +32,7 @@ export default function Login({ onLogin, onShowRegister }) {
         // ================================
         // 🔔 2) ENVIAR NOTIFICACIÓN DE BIENVENIDA
         // ================================
-        await fetch("http://localhost:5000/sendWelcome", {
+        await fetch("https://pwa-be-3xz0.onrender.com/sendWelcome", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ username: data.username }),
