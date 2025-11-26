@@ -215,8 +215,10 @@ function App() {
       applicationServerKey: urlBase64ToUint8Array("BErGkEWe6YOTAyjxwQfJ9aqT02_y9FZY0WgtWkiUO-2c8kmI3TSIEI2VbugzSNKTfPgl0CkfzyK5D3HregqzWk4"),
     });
     await fetch("https://pwa-be-3xz0.onrender.com/subscribe", {
-      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(subscription)
-    });
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ username: localStorage.getItem("user"), subscription })
+});
     alert("Notificaciones activadas 🎉");
   }
 
