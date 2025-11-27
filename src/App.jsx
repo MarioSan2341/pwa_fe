@@ -22,6 +22,10 @@ function openDB() {
       if (!db.objectStoreNames.contains("cart")) {
         db.createObjectStore("cart", { keyPath: "id", autoIncrement: true });
       }
+      // 🔥 NUEVO: compras pendientes offline
+  if (!db.objectStoreNames.contains("pendingBuys")) {
+    db.createObjectStore("pendingBuys", { keyPath: "id", autoIncrement: true });
+  }
     };
 
     request.onsuccess = () => resolve(request.result);
@@ -65,51 +69,61 @@ function App() {
 }, [user]);
 
 
+async function fetchCatalogs() {
+  try {
+   const res = await fetch("https://pwa-be-3xz0.onrender.com/catalogs");
 
-  // Datos base de catálogos
-  const catalogsData = [
-    { id: 1, name: "Electrónica", description: "Teléfonos, computadoras y más" },
-    { id: 2, name: "Ropa", description: "Moda y accesorios" },
-    { id: 3, name: "Libros", description: "Lectura y aprendizaje" },
-    { id: 4, name: "Juguetes", description: "Diversión para todas las edades" }
-  ];
 
-  // guardar catálogos (cuando haya internet)
-  useEffect(() => {
-    async function saveCatalogs() {
-      if (!navigator.onLine) return;
-      const db = await openDB();
-      const tx = db.transaction("catalogs", "readwrite");
-      const store = tx.objectStore("catalogs");
-      catalogsData.forEach(cat => store.put(cat));
-      // luego cargar
-      loadCatalogs();
-    }
-    saveCatalogs();
-  }, []);
+    const data = await res.json();
 
-  // cargar catálogos desde IndexedDB
-  async function loadCatalogs() {
-    try {
-      const db = await openDB();
-      const tx = db.transaction("catalogs", "readonly");
-      const store = tx.objectStore("catalogs");
-      const r = store.getAll();
-      r.onsuccess = () => {
-        const res = r.result || [];
-        // si está vacío uso fallback
-        setCatalogs(res.length ? res : catalogsData);
-      };
-      r.onerror = () => setCatalogs(catalogsData);
-    } catch (err) {
-      setCatalogs(catalogsData);
-      console.error("loadCatalogs:", err);
-    }
+    // guardar en IndexedDB para offline
+    const db = await openDB();
+    const tx = db.transaction("catalogs", "readwrite");
+    const store = tx.objectStore("catalogs");
+    store.clear();
+    data.forEach(item => store.put(item));
+
+    setCatalogs(data);
+  } catch (err) {
+    console.log("offline → usando indexedDB");
+    loadCatalogs();
   }
-  useEffect(() => { loadCatalogs(); }, []);
+}
 
-  // cargar carrito desde IndexedDB al iniciar
-  async function loadCartFromDB() {
+useEffect(() => { fetchCatalogs(); }, []);
+
+
+  // cargar catálogo desde IndexedDB
+async function loadCatalogs() {
+  try {
+    const db = await openDB();
+    const tx = db.transaction("catalogs", "readonly");
+    const store = tx.objectStore("catalogs");
+
+    const req = store.getAll();
+
+    req.onsuccess = () => {
+      const data = req.result || [];
+      setCatalogs(data);
+    };
+    req.onerror = () => {
+      console.error("Error leyendo catálogo local");
+      setCatalogs([]); // sin fallback
+    };
+
+  } catch (err) {
+    console.error("loadCatalogs error:", err);
+    setCatalogs([]);
+  }
+}
+
+async function loadCartFromDB() {
+  if (!user) {
+    setCartItems([]);
+    setCartCount(0);
+    return;
+  }
+
   try {
     const db = await openDB();
     const tx = db.transaction("cart", "readonly");
@@ -118,15 +132,20 @@ function App() {
 
     req.onsuccess = () => {
       const all = req.result || [];
-      const filtered = all.filter(i => i.username === user); // 🔥
+
+      // solo los del usuario actual
+      const filtered = all.filter(item => item.username === user);
+
       setCartItems(filtered);
-      setCartCount(filtered.length); // 🔥
+      setCartCount(filtered.length);
     };
 
   } catch (err) {
-    console.error("Error abrir DB carrito:", err);
+    console.error("Error cargando carrito:", err);
   }
 }
+
+
 
   useEffect(() => { loadCartFromDB(); }, []);
 
@@ -276,34 +295,38 @@ function App() {
 );
   }
 
-  // Render principal
   return (
-    <div className="min-h-screen bg-gray-100 p-8">
-      {/* carrito fijo */}
-      <div className="fixed top-4 right-4 text-2xl z-50 cursor-pointer" onClick={() => setViewCart(true)}>
-        🛒 <span className="text-sm bg-green-600 text-white px-2 py-1 rounded-full ml-1">{cartCount}</span>
-      </div>
-
-      <h1 className="text-3xl font-bold mb-6 text-center">Bienvenido, {user}</h1>
-      <h2 className="text-xl font-semibold mb-4 text-center">Elige un catálogo</h2>
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        {catalogs.map(cat => (
-          <div key={cat.id} className="bg-white p-6 rounded-xl shadow relative">
-            <h3 className="text-lg font-bold mb-2">{cat.name}</h3>
-            <p className="text-gray-600 mb-4">{cat.description}</p>
-            <button onClick={() => addToCart(cat)} className="absolute top-3 right-3 bg-green-600 text-white rounded-full w-10 h-10 flex items-center justify-center text-2xl hover:bg-green-700">+</button>
-          </div>
-        ))}
-      </div>
-
-      <div className="mt-6 space-y-3">
-        <button onClick={activatePush} className="bg-yellow-500 text-white py-2 px-4 rounded hover:bg-yellow-600 block">🔔 Activar Notificaciones</button>
-        <button onClick={sendTestNotification} className="bg-green-500 text-white py-2 px-4 rounded hover:bg-green-600 block">📨 Enviar Notificación de Prueba</button>
-        <button onClick={logout} className="bg-red-500 text-white py-2 px-4 rounded hover:bg-red-600 block">Cerrar sesión</button>
-      </div>
+  <div className="min-h-screen bg-gray-100 p-8">
+    <div className="fixed top-4 right-4 text-2xl z-50 cursor-pointer" onClick={() => setViewCart(true)}>
+      🛒 <span className="text-sm bg-green-600 text-white px-2 py-1 rounded-full ml-1">{cartCount}</span>
     </div>
-  );
+
+    <h1 className="text-3xl font-bold mb-6 text-center">Bienvenido, {user}</h1>
+    <h2 className="text-xl font-semibold mb-4 text-center">Elige un catálogo</h2>
+
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+     {catalogs.map(cat => (
+  <div key={cat.id} className="bg-white p-6 rounded-xl shadow relative">
+    <h3 className="text-lg font-bold mb-2">{cat.name}</h3>
+    <p className="text-gray-600 mb-4">{cat.description}</p>
+    <button 
+      onClick={() => addToCart(cat)}
+      className="absolute top-3 right-3 bg-green-600 text-white rounded-full w-10 h-10 flex items-center justify-center text-2xl hover:bg-green-700"
+    >
+      +
+    </button>
+  </div>
+))}
+
+    </div>
+
+    <div className="mt-6 space-y-3">
+      <button onClick={activatePush} className="bg-yellow-500 text-white py-2 px-4 rounded hover:bg-yellow-600 block">🔔 Activar Notificaciones</button>
+      <button onClick={sendTestNotification} className="bg-green-500 text-white py-2 px-4 rounded hover:bg-green-600 block">📨 Enviar Notificación de Prueba</button>
+      <button onClick={logout} className="bg-red-500 text-white py-2 px-4 rounded hover:bg-red-600 block">Cerrar sesión</button>
+    </div>
+  </div>
+);
 }
 
 export default App;
